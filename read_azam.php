@@ -1,7 +1,17 @@
 <?php
 include 'koneksi_azam.php';
 
-$data = mysqli_query($conn, "
+// Ambil data untuk dropdown filter
+$mapel = mysqli_query($conn, "SELECT id_mapel, nama_mapel FROM mapel_azam ORDER BY nama_mapel ASC");
+
+// Tangkap filter dari form
+$filter_nama = isset($_GET['nama']) ? $_GET['nama'] : '';
+$filter_mapel = isset($_GET['mapel']) ? $_GET['mapel'] : '';
+$filter_semester = isset($_GET['semester']) ? $_GET['semester'] : '';
+$filter_tahun = isset($_GET['tahun']) ? $_GET['tahun'] : '';
+
+// Query data dengan filter
+$query = "
   SELECT 
     nilai_azam.*,
     mapel_azam.nama_mapel,
@@ -9,7 +19,15 @@ $data = mysqli_query($conn, "
   FROM nilai_azam
   JOIN mapel_azam ON nilai_azam.id_mapel = mapel_azam.id_mapel
   JOIN siswa_azam ON nilai_azam.nis = siswa_azam.nis
-");
+  WHERE 1=1
+";
+
+if($filter_nama) $query .= " AND siswa_azam.nama_siswa LIKE '%$filter_nama%'";
+if($filter_mapel) $query .= " AND nilai_azam.id_mapel = '$filter_mapel'";
+if($filter_semester) $query .= " AND nilai_azam.semester = '$filter_semester'";
+if($filter_tahun) $query .= " AND nilai_azam.tahun_ajaran = '$filter_tahun'";
+
+$data = mysqli_query($conn, $query);
 ?>
 
 <!DOCTYPE html>
@@ -17,8 +35,8 @@ $data = mysqli_query($conn, "
 <head>
 <meta charset="UTF-8">
 <title>Data Nilai</title>
-
 <style>
+/* CSS sama seperti sebelumnya */
 *{
   margin: 0;
   padding: 0;
@@ -113,9 +131,42 @@ table tr:hover{
   background: #eef5ff;
 }
 
-
 .aksi a{
   margin: 0 3px;
+}
+
+/* Filter form */
+.filter-box{
+  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filter-box input, .filter-box select{
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.filter-box button{
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  background: #3498db;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.filter-box a{
+  padding: 8px 16px;
+  border-radius: 6px;
+  background: #e74c3c;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  text-align: center;
 }
 
 @media(max-width: 768px){
@@ -135,6 +186,44 @@ table tr:hover{
     <a href="create_azam.php" class="btn btn-add">+ Tambah Nilai</a>
     <a href="cetak_form.php" class="btn btn-add">🖨 Cetak Nilai</a>
   </div>
+</div>
+
+<!-- Filter Form -->
+<div class="filter-box">
+  <form method="GET" style="display:flex; flex-wrap:wrap; gap:10px;">
+    <input type="text" name="nama" placeholder="Cari Nama Siswa..." value="<?= $filter_nama ?>">
+    
+    <select name="mapel">
+      <option value="">-- Pilih Mapel --</option>
+      <?php while($m = mysqli_fetch_assoc($mapel)): ?>
+        <option value="<?= $m['id_mapel'] ?>" <?= ($m['id_mapel']==$filter_mapel)?'selected':'' ?>><?= $m['nama_mapel'] ?></option>
+      <?php endwhile; ?>
+    </select>
+    
+    <select name="semester">
+      <option value="">-- Pilih Semester --</option>
+      <option value="1" <?= ($filter_semester=='1')?'selected':'' ?>>1</option>
+      <option value="2" <?= ($filter_semester=='2')?'selected':'' ?>>2</option>
+    </select>
+    
+    <select name="tahun">
+  <option value="">-- Pilih Tahun Ajaran --</option>
+  <?php 
+  $tahun_awal = 2015; // mulai dari 2015
+  $tahun_ini = date('Y');
+  for($i=$tahun_ini; $i>=$tahun_awal; $i--):
+    $tahun_ajaran = ($i-1) . " - " . $i; // misal 2020-2021
+  ?>
+    <option value="<?= $tahun_ajaran ?>" <?= ($filter_tahun==$tahun_ajaran)?'selected':'' ?>>
+      <?= $tahun_ajaran ?>
+    </option>
+  <?php endfor; ?>
+</select>
+
+    
+    <button type="submit">Filter</button>
+    <a href="data_nilai.php">Reset</a>
+  </form>
 </div>
 
 <div class="table-box">
